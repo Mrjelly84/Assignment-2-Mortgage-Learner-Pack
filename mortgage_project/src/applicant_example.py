@@ -11,7 +11,7 @@ import joblib
 import pandas as pd
 
 from src.model import MODEL_FILE, IMPROVED_FEATURES
-from src.decisions import validate_application_fields, validate_score
+from src.decisions import advisory_decision, validate_application_fields, validate_score
 
 # Sample values for the improved model. Do not use actual customer information.
 EXAMPLE_APPLICATION = {
@@ -48,9 +48,12 @@ def main():
     print(f"debt_to_income_ratio={EXAMPLE_APPLICATION['debt_to_income_ratio']:.2f}")
     print(f"Repayment-difficulty class-1 score: {score:.3f}")
     print("Calibration not assessed; this is not a validated PD.")
-    print("Provisional recommendation: PENDING — rules not yet implemented")
-    print("Status: AWAITING HUMAN REVIEW — no mortgage approved or declined")
-    print("NEXT: implement and test your own decision rules from Week 6")
+    decision = advisory_decision(score, EXAMPLE_APPLICATION)
+    print(f"Status: {decision['status']}")
+    print(f"Risk level: {decision['risk_level']}")
+    print(f"Recommendation: {decision['recommendation']}")
+    print(f"Reason: {decision['reason']}")
+    print("Advisory only; a human reviewer must make any final decision.")
 
 
 if __name__ == "__main__":

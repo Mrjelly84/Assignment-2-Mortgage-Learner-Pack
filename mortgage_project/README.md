@@ -15,15 +15,17 @@ py -m venv .venv
 
 The supplied dataset is already in `data/mortgage_data.csv`. The program uses only **synthetic data**. Do not use real applicant details.
 
+`python -m src.main` opens the graphical assessment form, prefilled with a random complete example from the supplied synthetic dataset. Select **Randomize Sample** to load another example, or edit the fields before running an assessment. If no saved model exists yet, the app trains one from the supplied dataset first.
+
 ### What is working?
 - Data audit (`src/data.py`)
 - A basic two-feature Logistic Regression pipeline with training-only imputation/scaling, a majority-class reference and initial held-out evaluation (`src/model.py`, `src/main.py`)
-- Saved model and sample applicant **scoring** (not decision-making) (`src/applicant_example.py`)
-- Four generic validation tests (`tests/test_validation.py`)
+- Saved model, sample applicant scoring, and advisory rule outcomes (`src/applicant_example.py`, `src/decisions.py`)
+- Validation and advisory decision tests (`tests/test_validation.py`)
 
 ### What is your independent assignment work?
 
-Develop, justify and test your own logical decision rules and their integration with the model; make evidence-informed modelling/evaluation decisions, carry out meaningful improvement and retesting, document decisions and sources, and maintain Git/GitHub version history. The intentionally incomplete `advisory_decision()` in `src/decisions.py` is not an error in the supplied training/scoring example.
+The prototype routes repayment-difficulty scores below 0.40 to lower-risk human review, scores from 0.40 through 0.749 to medium-risk review, and scores of 0.75 or higher to deep human review. These are provisional advisory thresholds, not validated mortgage policy or an automated approval/decline. Justify and test any changes to these rules, and document modelling decisions, sources, and Git/GitHub version history.
 
 **Version-control and data note:** Synthetic CSV data and generated `.joblib` model files are excluded from Git by default. The tutor has provided the dataset in the assignment pack; explain how to obtain it in your README. Seek permission before putting data into a public repository. Never commit real personal or confidential data or credentials. A reviewer must be able to run the project using the supplied dataset and the documented commands.
 

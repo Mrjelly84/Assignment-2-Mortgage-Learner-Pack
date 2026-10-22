@@ -14,18 +14,7 @@ def validate_application_fields(application: Dict[str, Any], required_fields: Li
     """
     invalid = []
     
-    # CRITICAL FIX: Using the EXACT column names from the data output
-    CORRECT_FIELDS = [
-        'annual_income_gbp',
-        'loan_to_value_pct',
-        'monthly_debt_commitments_gbp',
-        'debt_to_income_ratio',
-        'credit_score',
-        'employment_years',
-        'missed_payments_24m' 
-    ]
-    
-    for field in CORRECT_FIELDS:
+    for field in required_fields:
         value = application.get(field)
         
         # Check for None, blank string, or non-finite numerical values
@@ -53,33 +42,49 @@ def validate_score(score: Real) -> float:
 
 def advisory_decision(score: float, application: Dict[str, Any]) -> DecisionOutcome:
     """
-    Implements the documented advisory decision rules. 
-    The system provides a recommended action and rationale, NOT a final verdict, 
-    thus supporting professional human judgment.
-    
-    The logic is engineered to prioritize Recall, ensuring high-risk applicants are flagged.
+    Route repayment-difficulty scores to advisory outcomes, not final verdicts.
     """
-    # 1. Initial Data Integrity Check (The Gatekeeper)
+    score = validate_score(score)
+
     try:
-        # Ensure all required data is present before making a risk assessment
-        validate_application_fields(application, []) # Pass empty list as fields are hardcoded inside the validator
+        validate_application_fields(application, [
+            'annual_income_gbp',
+            'loan_to_value_pct',
+            'monthly_debt_commitments_gbp',
+            'debt_to_income_ratio',
+            'credit_score',
+            'employment_years',
+            'missed_payments_24m',
+            'credit_utilisation_pct',
+        ])
     except ValueError as e:
         return {
-            'status': 'Failed Check', 
-            'risk_level': 'Data Incomplete', 
-            'recommendation': 'Reject - Data Failure', 
-            'reason': str(e)
+            'status': 'Failed Check',
+            'risk_level': 'Data Incomplete',
+            'recommendation': 'Do not assess; resolve missing or invalid data.',
+            'reason': str(e),
         }
 
-    # 2. Risk-Based Advisory Routing (The core decision support logic)
-    
-    # High Score (Score >= 0.75): Low Risk
+    # The model score is the probability of repayment difficulty (class 1).
     if score >= 0.75:
         return {
-            'status': 'Recommended', 
-            'risk_level': 'Low', 
-            'recommendation': 'Advise Approval (Pending Final Human Review)', 
-            'reason': 'High predicted likelihood of repayment. Minimal risk.'
+            'status': 'High Risk',
+            'risk_level': 'High',
+            'recommendation': 'Flag for deep human review; consider structural mitigation.',
+            'reason': 'High predicted likelihood of repayment difficulty.',
         }
-    
-    # Medium Score (0.
+
+    if score >= 0.40:
+        return {
+            'status': 'Review',
+            'risk_level': 'Medium',
+            'recommendation': 'Flag for human review and assess possible mitigation.',
+            'reason': 'Moderate predicted likelihood of repayment difficulty.',
+        }
+
+    return {
+        'status': 'Lower Risk',
+        'risk_level': 'Low',
+        'recommendation': 'Proceed to normal human review; do not treat this as approval.',
+        'reason': 'Lower predicted likelihood of repayment difficulty.',
+    }
