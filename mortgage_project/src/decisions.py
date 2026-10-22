@@ -2,17 +2,33 @@ import math
 from numbers import Real
 from typing import Dict, Any, List
 
-# Define a structure for the final decision output
+# Define a structure for the final decision outcome
 DecisionOutcome = Dict[str, Any]
 
 
 def validate_application_fields(application: Dict[str, Any], required_fields: List[str]) -> bool:
     """
     Validates application fields, rejecting records missing, blank, or non-finite values.
+    
+    Requires fields to exist and contain finite, non-blank data.
     """
     invalid = []
-    for field in required_fields:
+    
+    # CRITICAL FIX: Using the EXACT column names from the data output
+    CORRECT_FIELDS = [
+        'annual_income_gbp',
+        'loan_to_value_pct',
+        'monthly_debt_commitments_gbp',
+        'debt_to_income_ratio',
+        'credit_score',
+        'employment_years',
+        'missed_payments_24m' 
+    ]
+    
+    for field in CORRECT_FIELDS:
         value = application.get(field)
+        
+        # Check for None, blank string, or non-finite numerical values
         if (value is None or
             (isinstance(value, str) and not value.strip()) or
             (isinstance(value, Real) and not math.isfinite(value))):
@@ -38,52 +54,32 @@ def validate_score(score: Real) -> float:
 def advisory_decision(score: float, application: Dict[str, Any]) -> DecisionOutcome:
     """
     Implements the documented advisory decision rules. 
-    The system provides a recommended action, not a final verdict, supporting human judgment.
+    The system provides a recommended action and rationale, NOT a final verdict, 
+    thus supporting professional human judgment.
+    
+    The logic is engineered to prioritize Recall, ensuring high-risk applicants are flagged.
     """
-    validate_score(score)
-    
-    # --- DOCUMENTED DECISION RULES START HERE ---
-    
-    # 1. Check Data Integrity (Primary Gatekeeper Rule)
+    # 1. Initial Data Integrity Check (The Gatekeeper)
     try:
-        validate_application_fields(application, ['income', 'debt_ratio', 'credit_history'])
+        # Ensure all required data is present before making a risk assessment
+        validate_application_fields(application, []) # Pass empty list as fields are hardcoded inside the validator
     except ValueError as e:
         return {
-            'status': 'Rejected', 
+            'status': 'Failed Check', 
             'risk_level': 'Data Incomplete', 
             'recommendation': 'Reject - Data Failure', 
             'reason': str(e)
         }
 
     # 2. Risk-Based Advisory Routing (The core decision support logic)
+    
+    # High Score (Score >= 0.75): Low Risk
     if score >= 0.75:
-        # Low Risk (Highly Favourable)
         return {
             'status': 'Recommended', 
             'risk_level': 'Low', 
             'recommendation': 'Advise Approval (Pending Final Human Review)', 
-            'reason': 'High predicted likelihood of repayment.'
+            'reason': 'High predicted likelihood of repayment. Minimal risk.'
         }
     
-    elif 0.40 <= score < 0.75:
-        # Medium Risk (Needs Mitigating Action)
-        # Here, the system provides actionable advice, NOT a denial.
-        return {
-            'status': 'Review', 
-            'risk_level': 'Medium', 
-            'recommendation': 'Flag for Human Review; Recommend Structural Mitigation (e.g., lower loan amount or co-signer).', 
-            'reason': 'Moderate risk detected; human judgment is required to assess mitigation strategies.'
-        }
-        
-    else: # score < 0.40
-        # High Risk (Adverse)
-        # Even here, the advice is structured, not simply a flat rejection.
-        return {
-            'status': 'High Risk', 
-            'risk_level': 'High', 
-            'recommendation': 'Advise Rejection or Deep Re-evaluation of Applicant Profile.', 
-            'reason': 'Low predicted repayment likelihood requires rejection or significant policy change.'
-        }
-
-# Example of how the output is structured for the human reviewer:
-# print(advisory_decision(0.8, {...})) 
+    # Medium Score (0.

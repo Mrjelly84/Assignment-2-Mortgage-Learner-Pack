@@ -20,8 +20,7 @@ def main():
     report('Majority-class reference', reference_results)
     report('Improved Random Forest model', improved_results)
     print(f'\nTrained improved model saved: {MODEL_FILE}')
-    print('LEARNER: justify/extend model; create decision rules, application integration, tests, and improvement evidence.')
-
+   
 
 if __name__ == '__main__':
     main()
