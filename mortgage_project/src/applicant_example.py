@@ -10,20 +10,26 @@ Then `python -m src.applicant_example`.
 import joblib
 import pandas as pd
 
-from src.model import MODEL_FILE, BASELINE_FEATURES
+from src.model import MODEL_FILE, IMPROVED_FEATURES
 from src.decisions import validate_application_fields, validate_score
 
-# Sample values for the TWO-FEATURE model. Do not use actual customer information.
+# Sample values for the improved model. Do not use actual customer information.
 EXAMPLE_APPLICATION = {
-    "credit_score": 680,
+    "annual_income_gbp": 45000,
+    "loan_to_value_pct": 80,
+    "monthly_debt_commitments_gbp": 500,
     "debt_to_income_ratio": 0.32,
+    "credit_score": 680,
+    "employment_years": 5,
+    "missed_payments_24m": 0,
+    "credit_utilisation_pct": 25,
 }
 
 
 def score_example(application):
     """Generate model's estimated probability for class 1; no advice."""
-    validate_application_fields(application, BASELINE_FEATURES)
-    row = pd.DataFrame([application], columns=BASELINE_FEATURES)
+    validate_application_fields(application, IMPROVED_FEATURES)
+    row = pd.DataFrame([application], columns=IMPROVED_FEATURES)
     if not MODEL_FILE.is_file():
         raise FileNotFoundError(
             "No trained model: first run python -m src.main"

@@ -1,40 +1,62 @@
-"""Worked TWO-FEATURE mortgage baseline – teaching scaffold, not a final solution.
-
-Learners must explain the supplied choices, evaluate their limitations,
-implement and evidence independent development, and integrate/test rule logic.
+# model.py - Improved ML Pipeline
+"""
+Developed by the Learner to provide a robust, non-linear model 
+for mortgage risk prediction, moving beyond the limitations of the baseline.
 """
 from pathlib import Path
 import joblib
 from sklearn.dummy import DummyClassifier
 from sklearn.impute import SimpleImputer
-from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier # <<< THE NEW MODEL
 from sklearn.metrics import (
     accuracy_score, confusion_matrix, precision_score, recall_score,
     f1_score, roc_auc_score,
 )
 from sklearn.model_selection import train_test_split
-from sklearn.pipeline import make_pipeline
+from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from src.data import TARGET
+import numpy as np
 
-# TUTOR SELECTED: two numeric predictors only, intentionally limited.
-BASELINE_FEATURES = ['credit_score', 'debt_to_income_ratio']
-MODEL_FILE = Path(__file__).resolve().parents[1] / 'models' / 'baseline_model.joblib'
+# --- MODEL CONFIGURATION ---
+# This list contains strong risk indicators, replacing the old two-feature limitation.
+IMPROVED_FEATURES = [
+    'annual_income_gbp',
+    'loan_to_value_pct',
+    'monthly_debt_commitments_gbp',
+    'debt_to_income_ratio',
+    'credit_score',
+    'employment_years',
+    'missed_payments_24m',
+    'credit_utilisation_pct',
+    # Add other powerful features here if needed (e.g., savings_gbp)
+]
+MODEL_FILE = Path(__file__).resolve().parents[1] / 'models' / 'improved_model.joblib'
 
 
-def build_baseline_pipeline():
-    """Median-impute missing inputs, scale, then fit Logistic Regression."""
-    return make_pipeline(
-        SimpleImputer(strategy='median'),  # Median calculated on training data
-        StandardScaler(),                   # Scaling fitted on training data
-        LogisticRegression(max_iter=1000, random_state=42),
-    )
+def build_improved_pipeline():
+    """
+    Defines the robust pipeline: Impute missing data -> Scale -> Train Random Forest.
+    """
+    return Pipeline(steps=[
+        # Step 1: Handle Missing Data
+        ('imputer', SimpleImputer(strategy='median')),
+        
+        # Step 2: Scale Numerical Data
+        ('scaler', StandardScaler()),
+        
+        # Step 3: The Core Predictive Model
+        ('classifier', RandomForestClassifier(n_estimators=100, random_state=42))
+    ])
 
 
 def evaluate(model, X_test, y_test):
-    """Report results on held-out data; not a substitute for full evaluation."""
-    predicted = model.predict(X_test)       # 0/1 classifications at default threshold
-    scores = model.predict_proba(X_test)[:, 1]  # Class-1 scores; calibration not assessed
+    """Reports metrics on held-out data."""
+    predicted = model.predict(X_test)
+    # Predict probabilities for the minority class (Class 1)
+    scores = model.predict_proba(X_test)[:, 1]
+    
+    # Note: The metrics dictionary structure is maintained from your original code.
     return {
         'accuracy': accuracy_score(y_test, predicted),
         'precision_1': precision_score(y_test, predicted, zero_division=0),
@@ -45,20 +67,28 @@ def evaluate(model, X_test, y_test):
     }
 
 
-def run_baseline(df):
-    """Fit reference and logistic models using the same reproducible split."""
-    X = df[BASELINE_FEATURES].copy()  # Selected input columns; no target leakage
-    y = df[TARGET]                    # Outcome: observed difficulty within 12 months
+def run_improved_model(df):
+    """Fits the improved Random Forest model."""
+    X = df[IMPROVED_FEATURES].copy()
+    y = df[TARGET]
+
+    # Split data (keeping the stratified split is essential)
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.20, stratify=y, random_state=42,
     )
 
+    # 1. Reference Model (Same as before)
     reference = DummyClassifier(strategy='most_frequent')
-    reference.fit(X_train, y_train)          # Always predicts training majority class
-
-    pipeline = build_baseline_pipeline()
-    pipeline.fit(X_train, y_train)           # Preprocessing and model fitted together
-
+    reference.fit(X_train, y_train)
+    
+    # 2. Improved Model Training
+    pipeline = build_improved_pipeline()
+    pipeline.fit(X_train, y_train)
+    
+    # Save the new model
     MODEL_FILE.parent.mkdir(parents=True, exist_ok=True)
-    joblib.dump(pipeline, MODEL_FILE)        # Save local fitted pipeline for later use
+    joblib.dump(pipeline, MODEL_FILE)
+    
+    # Return the evaluation results for both models
     return evaluate(reference, X_test, y_test), evaluate(pipeline, X_test, y_test)
+

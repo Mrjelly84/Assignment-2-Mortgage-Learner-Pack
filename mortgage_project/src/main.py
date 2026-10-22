@@ -1,6 +1,6 @@
 """Run the supplied baseline only; assessed advisory rules are NOT provided."""
 from src.data import load_data, print_audit
-from src.model import BASELINE_FEATURES, MODEL_FILE, run_baseline
+from src.model import IMPROVED_FEATURES, MODEL_FILE, run_improved_model
 from src.decisions import validate_score, advisory_decision
 
 
@@ -15,11 +15,11 @@ def report(name, result):
 def main():
     df = load_data()
     print_audit(df)
-    reference_results, baseline_results = run_baseline(df)
-    print('\nTutor-selected baseline features:', BASELINE_FEATURES)
+    reference_results, improved_results = run_improved_model(df)
+    print('\nLearner-selected improved-model features:', IMPROVED_FEATURES)
     report('Majority-class reference', reference_results)
-    report('Two-feature logistic-regression baseline', baseline_results)
-    print(f'\nTrained baseline saved: {MODEL_FILE}')
+    report('Improved Random Forest model', improved_results)
+    print(f'\nTrained improved model saved: {MODEL_FILE}')
     print('LEARNER: justify/extend model; create decision rules, application integration, tests, and improvement evidence.')
 
 
