@@ -1,0 +1,1 @@
+The **supplied synthetic teaching dataset** is already here as `mortgage_data.csv` (800 rows, 19 fields). See `../../DATA_DICTIONARY.md` for the field guide. Do not replace it with real customer data. The project's .gitignore excludes CSV files by default; include access instructions in your repository README.
