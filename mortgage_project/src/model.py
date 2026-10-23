@@ -1,6 +1,6 @@
 # model.py - Improved ML Pipeline
 """
-Developed by the Learner to provide a robust, non-linear model 
+Developed  to provide a robust, non-linear model 
 for mortgage risk prediction, moving beyond the limitations of the baseline.
 """
 from pathlib import Path
