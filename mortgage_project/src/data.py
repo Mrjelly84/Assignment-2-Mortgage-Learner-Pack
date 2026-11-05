@@ -34,5 +34,27 @@ def print_audit(df):
     # LEARNER: investigate outliers, meaning, availability and fairness-related proxies.
 
 
+def print_model_results(results):
+    """Print the held-out model metrics as a compact table."""
+    measures = (
+        ('Accuracy', 'accuracy'),
+        ('Precision for class 1', 'precision_1'),
+        ('Recall for class 1', 'recall_1'),
+        ('F1 for class 1', 'f1_1'),
+        ('ROC AUC', 'roc_auc'),
+    )
+    print('\nImproved model results:')
+    print('| Measure               | Result |')
+    print('| --------------------- | -----: |')
+    for label, key in measures:
+        print(f'| {label:<21} | {results[key]:6.3f} |')
+
+
 if __name__ == '__main__':
-    print_audit(load_data())
+    data = load_data()
+    print_audit(data)
+
+    from src.model import run_improved_model
+
+    _, model_results = run_improved_model(data)
+    print_model_results(model_results)

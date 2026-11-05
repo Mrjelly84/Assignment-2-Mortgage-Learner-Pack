@@ -18,7 +18,7 @@ The supplied dataset is already in `data/mortgage_data.csv`. The program uses on
 `python -m src.main` opens the graphical assessment form, prefilled with a random complete example from the supplied synthetic dataset. Select **Randomize Sample** to load another example, or edit the fields before running an assessment. After an assessment, select **Show Raw Results** to view the submitted feature values, predicted class, and class probabilities; this button becomes unavailable when you change the inputs. If no saved model exists yet, the app trains one from the supplied dataset first.
 
 ### What is working?
-- Data audit (`src/data.py`)
+- Data audit and held-out model metrics (`src/data.py`)
 - A basic two-feature Logistic Regression pipeline with training-only imputation/scaling, a majority-class reference and initial held-out evaluation (`src/model.py`, `src/main.py`)
 - Saved model, sample applicant scoring, and advisory rule outcomes (`src/applicant_example.py`, `src/decisions.py`)
 - Validation and advisory decision tests (`tests/test_validation.py`)
