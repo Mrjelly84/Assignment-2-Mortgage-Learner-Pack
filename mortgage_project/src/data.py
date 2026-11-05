@@ -1,8 +1,5 @@
-"""Load and inspect the supplied synthetic mortgage observations.
 
-Week 7 teaching scaffold. The audit provides evidence for learners to
-interpret; it does not select features or complete the assessed data analysis.
-"""
+
 from pathlib import Path
 import pandas as pd
 

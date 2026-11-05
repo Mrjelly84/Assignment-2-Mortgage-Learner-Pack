@@ -15,7 +15,7 @@ py -m venv .venv
 
 The supplied dataset is already in `data/mortgage_data.csv`. The program uses only **synthetic data**. Do not use real applicant details.
 
-`python -m src.main` opens the graphical assessment form, prefilled with a random complete example from the supplied synthetic dataset. Select **Randomize Sample** to load another example, or edit the fields before running an assessment. After an assessment, select **Show Raw Results** to view the submitted feature values, predicted class, and class probabilities; this button becomes unavailable when you change the inputs. If no saved model exists yet, the app trains one from the supplied dataset first.
+`python -m src.main` opens the graphical assessment form, prefilled with a random complete example from the supplied synthetic dataset. Select **Randomize Sample** to load another example, or edit the fields before running an assessment. Use **Class 1 Classification Threshold** and **Apply Threshold** to change the probability cutoff for the predicted class, then run the assessment again. **Show Model Metrics** displays accuracy, precision, recall, F1, and ROC AUC for the saved model on the held-out data split, using the applied classification threshold. Changing the threshold changes the predicted class and threshold-based metrics only; the advisory status still follows separate rules in `src/decisions.py`, and ROC AUC is threshold-independent. After an assessment, select **Show Raw Results** to view the submitted feature values, predicted class, and class probabilities; this button becomes unavailable when you change the inputs. If no saved model exists yet, the app trains one from the supplied dataset first.
 
 ### What is working?
 - Data audit and held-out model metrics (`src/data.py`)

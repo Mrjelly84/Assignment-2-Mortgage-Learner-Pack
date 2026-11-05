@@ -6,7 +6,13 @@ import pandas as pd
 
 from src.decisions import advisory_decision, validate_application_fields, validate_score
 from src.data import load_data, print_audit
-from src.model import IMPROVED_FEATURES, MODEL_FILE, run_improved_model
+from src.model import (
+    CLASSIFICATION_THRESHOLD,
+    IMPROVED_FEATURES,
+    MODEL_FILE,
+    evaluate_on_holdout,
+    run_improved_model,
+)
 
 
 class MortgageDecisionGUI:
@@ -17,7 +23,9 @@ class MortgageDecisionGUI:
         self.master.title("Mortgage Risk Advisor (Prototype)")
         self.model = None
         self.last_raw_results = None
-        self.sample_data = load_data().dropna(subset=IMPROVED_FEATURES)
+        self.classification_threshold = CLASSIFICATION_THRESHOLD
+        self.data = load_data()
+        self.sample_data = self.data.dropna(subset=IMPROVED_FEATURES)
         if self.sample_data.empty:
             raise ValueError(
                 "The supplied dataset has no rows with complete model features "
@@ -75,6 +83,37 @@ class MortgageDecisionGUI:
         )
         self.raw_results_button.pack(side="left", padx=5)
 
+        threshold_frame = ttk.LabelFrame(
+            self.master, text="Class 1 Classification Threshold"
+        )
+        threshold_frame.pack(padx=10, pady=5, fill="x")
+        ttk.Label(
+            threshold_frame,
+            text="Flag class 1 when the predicted probability is at least:",
+        ).pack(side="left", padx=5, pady=5)
+        self.threshold_value = tk.StringVar(
+            master=self.master,
+            value=f"{self.classification_threshold:.2f}",
+        )
+        ttk.Spinbox(
+            threshold_frame,
+            from_=0.0,
+            to=1.0,
+            increment=0.05,
+            textvariable=self.threshold_value,
+            width=6,
+        ).pack(side="left", padx=5, pady=5)
+        ttk.Button(
+            threshold_frame,
+            text="Apply Threshold",
+            command=self.apply_threshold,
+        ).pack(side="left", padx=5, pady=5)
+        ttk.Button(
+            threshold_frame,
+            text="Show Model Metrics",
+            command=self.show_model_metrics,
+        ).pack(side="left", padx=5, pady=5)
+
         self.output_frame = ttk.LabelFrame(
             self.master, text="Decision Support Outcome"
         )
@@ -87,6 +126,69 @@ class MortgageDecisionGUI:
         )
         self.result_label.pack(padx=10, pady=10, anchor="w")
         self.fill_random_sample()
+
+    def apply_threshold(self):
+        """Validate and apply the class-1 probability cutoff for GUI predictions."""
+        try:
+            threshold = validate_score(float(self.threshold_value.get()))
+        except ValueError as error:
+            messagebox.showerror(
+                "Invalid threshold",
+                f"Enter a number between 0 and 1.\n\n{error}",
+                parent=self.master,
+            )
+            return
+
+        self.classification_threshold = threshold
+        self.clear_raw_results()
+        self.result_label.configure(
+            text=(
+                f"Classification threshold set to {threshold:.2f}. "
+                "Select Run Assessment to score the current sample."
+            )
+        )
+
+    def show_model_metrics(self):
+        """Display held-out model metrics using the currently applied threshold."""
+        results = evaluate_on_holdout(
+            self.data,
+            self.model,
+            threshold=self.classification_threshold,
+        )
+        window = tk.Toplevel(self.master)
+        window.title("Held-out Model Metrics")
+        window.resizable(False, False)
+        ttk.Label(
+            window,
+            text=f"Classification threshold: {self.classification_threshold:.2f}",
+        ).grid(row=0, column=0, columnspan=2, padx=12, pady=(12, 6), sticky="w")
+        ttk.Label(window, text="Measure", font=("", 10, "bold")).grid(
+            row=1, column=0, padx=12, pady=4, sticky="w"
+        )
+        ttk.Label(window, text="Result", font=("", 10, "bold")).grid(
+            row=1, column=1, padx=12, pady=4, sticky="e"
+        )
+
+        measures = (
+            ("Accuracy", "accuracy"),
+            ("Precision for class 1", "precision_1"),
+            ("Recall for class 1", "recall_1"),
+            ("F1 for class 1", "f1_1"),
+            ("ROC AUC", "roc_auc"),
+        )
+        for row, (label, key) in enumerate(measures, start=2):
+            ttk.Label(window, text=label).grid(
+                row=row, column=0, padx=12, pady=3, sticky="w"
+            )
+            ttk.Label(window, text=f"{results[key]:.3f}").grid(
+                row=row, column=1, padx=12, pady=3, sticky="e"
+            )
+
+        ttk.Label(
+            window,
+            text="ROC AUC uses probability scores and is not changed by the threshold.",
+            wraplength=360,
+        ).grid(row=7, column=0, columnspan=2, padx=12, pady=(8, 12), sticky="w")
 
     def clear_raw_results(self, *_args):
         """Discard results whenever an applicant input changes."""
@@ -126,9 +228,9 @@ class MortgageDecisionGUI:
             return
 
         row = pd.DataFrame([application], columns=IMPROVED_FEATURES)
-        predicted_class = self.model.predict(row)[0]
         class_probabilities = self.model.predict_proba(row)[0]
         score = validate_score(float(class_probabilities[1]))
+        predicted_class = int(score >= self.classification_threshold)
         decision = advisory_decision(score, application)
         self.last_raw_results = (
             "Application inputs:\n"
@@ -144,11 +246,14 @@ class MortgageDecisionGUI:
                     self.model.classes_, class_probabilities
                 )
             )
+            + f"\n\nClassification threshold: {self.classification_threshold:.2f}"
         )
         self.raw_results_button.configure(state="normal")
         self.result_label.configure(
             text=(
                 f"Repayment-difficulty score: {score:.3f}\n"
+                f"Predicted class (threshold "
+                f"{self.classification_threshold:.2f}): {predicted_class}\n"
                 f"Status: {decision['status']}\n"
                 f"Risk level: {decision['risk_level']}\n"
                 f"Recommendation: {decision['recommendation']}\n"

@@ -4,6 +4,7 @@ Developed  to provide a robust, non-linear model
 for mortgage risk prediction, moving beyond the limitations of the baseline.
 """
 from pathlib import Path
+from xml.parsers.expat import model
 import joblib
 from sklearn.dummy import DummyClassifier
 from sklearn.impute import SimpleImputer
@@ -32,6 +33,7 @@ IMPROVED_FEATURES = [
     # Add other powerful features here if needed (e.g., savings_gbp)
 ]
 MODEL_FILE = Path(__file__).resolve().parents[1] / 'models' / 'improved_model.joblib'
+CLASSIFICATION_THRESHOLD = 0.3
 
 
 def build_improved_pipeline():
@@ -50,11 +52,10 @@ def build_improved_pipeline():
     ])
 
 
-def evaluate(model, X_test, y_test):
+def evaluate(model, X_test, y_test, threshold=CLASSIFICATION_THRESHOLD):
     """Reports metrics on held-out data."""
-    predicted = model.predict(X_test)
-    # Predict probabilities for the minority class (Class 1)
     scores = model.predict_proba(X_test)[:, 1]
+    predicted = (scores >= threshold).astype(int)
     
     # Note: The metrics dictionary structure is maintained from your original code.
     return {
@@ -67,6 +68,16 @@ def evaluate(model, X_test, y_test):
     }
 
 
+def evaluate_on_holdout(df, model, threshold=CLASSIFICATION_THRESHOLD):
+    """Evaluate a fitted model on the reproducible held-out data split."""
+    X = df[IMPROVED_FEATURES].copy()
+    y = df[TARGET]
+    _, X_test, _, y_test = train_test_split(
+        X, y, test_size=0.20, stratify=y, random_state=42,
+    )
+    return evaluate(model, X_test, y_test, threshold=threshold)
+
+
 def run_improved_model(df):
     """Fits the improved Random Forest model."""
     X = df[IMPROVED_FEATURES].copy()
@@ -76,6 +87,7 @@ def run_improved_model(df):
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.20, stratify=y, random_state=42,
     )
+    
 
     # 1. Reference Model (Same as before)
     reference = DummyClassifier(strategy='most_frequent')
@@ -84,6 +96,7 @@ def run_improved_model(df):
     # 2. Improved Model Training
     pipeline = build_improved_pipeline()
     pipeline.fit(X_train, y_train)
+
     
     # Save the new model
     MODEL_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -91,4 +104,3 @@ def run_improved_model(df):
     
     # Return the evaluation results for both models
     return evaluate(reference, X_test, y_test), evaluate(pipeline, X_test, y_test)
-
